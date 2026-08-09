@@ -7,7 +7,7 @@
 #include <VL53L1X.h>
 
 #define TCA_ADDR 0x70
-#define NUM_SENSORS 2        // 센서 추가할 때마다 이 숫자만 변경
+#define NUM_SENSORS 3        // 센서 추가할 때마다 이 숫자만 변경
 
 VL53L1X sensors[NUM_SENSORS];
 
