@@ -8,3 +8,6 @@
 - 04-breadboard-3ch: 2보드 분리 배치 (컨트롤 보드 + 센서 보드, 3센서)
 - 05-serial-3ch-success: 3채널 검증
 - 06-serial-4ch-success: 4채널 검증
+- 07-serial-5ch-success: 5채널 검증 (복합 배선 버그 해결 직후)
+- 08-serial-6ch-success: 6채널 검증 (한 번에 성공)
+- 09-breadboard-6ch-full: 6센서 시점 전체 회로 실사 (컨트롤 보드 + 센서 보드 2장 구성)
