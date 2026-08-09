@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>ARC Scan Viewer</title>
+<style>
+  body { margin: 0; background: #0a0e14; color: #7fdbca; font-family: monospace; overflow: hidden; }
+  #hud { position: fixed; top: 12px; left: 12px; z-index: 10; }
+  #hud input { background: #111823; color: #7fdbca; border: 1px solid #2a3a4a; padding: 6px 10px; font-family: monospace; width: 140px; }
+  #hud button { background: #1a2a3a; color: #7fdbca; border: 1px solid #2a3a4a; padding: 6px 14px; font-family: monospace; cursor: pointer; }
+  #status { margin-top: 8px; font-size: 13px; }
+  #readout { position: fixed; bottom: 12px; left: 12px; font-size: 13px; line-height: 1.6; z-index: 10; }
+  .invalid { color: #555; }
+</style>
+</head>
+<body>
+<div id="hud">
+  <input id="ip" placeholder="ESP32 IP 주소" value="">
+  <button onclick="connect()">연결</button>
+  <div id="status">대기 중</div>
+</div>
+<div id="readout"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---- 센서 기하: 채널 i의 틸트각 (channel 0 = +30° 최상단, channel 6 = -30° 최하단)
+const TILT_DEG = [30, 20, 10, 0, -10, -20, -30];
+const NUM = 7;
+const MAX_MM = 4000;
+
+// ---- three.js 기본 셋업
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.01, 100);
+camera.position.set(-2.2, 1.2, 2.6);
+camera.lookAt(1.2, 0, 0);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// 바닥 그리드 + 원점(스캐너 위치) 표시
+scene.add(new THREE.GridHelper(8, 16, 0x1a2a3a, 0x14202c));
+const origin = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.04, 0.06, 0.25, 16),
+  new THREE.MeshBasicMaterial({ color: 0x7fdbca })
+);
+origin.position.y = 0.125;
+scene.add(origin);
+
+// 채널별 점 + 원점에서 점까지의 빔 라인
+const pts = [], beams = [];
+const colors = [0xff5555,0xffaa33,0xffee55,0x66dd66,0x55bbff,0x9977ff,0xff77cc];
+for (let i = 0; i < NUM; i++) {
+  const p = new THREE.Mesh(
+    new THREE.SphereGeometry(0.045, 12, 12),
+    new THREE.MeshBasicMaterial({ color: colors[i] })
+  );
+  scene.add(p); pts.push(p);
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0.2,0), new THREE.Vector3(1,0,0)]);
+  const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: colors[i], transparent: true, opacity: 0.35 }));
+  scene.add(line); beams.push(line);
+}
+
+let latest = new Array(NUM).fill(0);
+
+function updateScene() {
+  for (let i = 0; i < NUM; i++) {
+    const mm = latest[i];
+    const valid = mm > 0 && mm < MAX_MM;
+    const r = (valid ? mm : 0) / 1000;           // m 단위
+    const phi = TILT_DEG[i] * Math.PI / 180;
+    const x = r * Math.cos(phi);                  // 전방
+    const y = 0.2 + r * Math.sin(phi);            // 높이 (스캐너 헤드 높이 0.2m 가정)
+    pts[i].visible = valid;
+    pts[i].position.set(x, y, 0);
+    beams[i].visible = valid;
+    beams[i].geometry.setFromPoints([new THREE.Vector3(0,0.2,0), new THREE.Vector3(x,y,0)]);
+  }
+  const ro = document.getElementById("readout");
+  ro.innerHTML = latest.map((v,i) =>
+    `<span class="${v>0&&v<MAX_MM?'':'invalid'}">ch${i} (${TILT_DEG[i]>0?'+':''}${TILT_DEG[i]}°): ${v} mm</span>`
+  ).join("<br>");
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+animate();
+
+// ---- 웹소켓
+let ws = null;
+function connect() {
+  const ip = document.getElementById("ip").value.trim();
+  if (!ip) return;
+  if (ws) ws.close();
+  document.getElementById("status").textContent = "연결 시도 중...";
+  ws = new WebSocket(`ws://${ip}:81`);
+  ws.onopen = () => document.getElementById("status").textContent = "연결됨 (" + ip + ")";
+  ws.onclose = () => document.getElementById("status").textContent = "연결 끊김";
+  ws.onerror = () => document.getElementById("status").textContent = "연결 실패 - IP/같은 와이파이 확인";
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (Array.isArray(msg.d)) { latest = msg.d; updateScene(); }
+    } catch (_) {}
+  };
+}
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
