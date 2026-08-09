@@ -8,15 +8,15 @@
 $fn = 40;
 
 // ===== [실측 필수] 센서 보드 =====
-sens_hole_span = 20.0;  // 센서 보드 나사구멍 중심 간 거리 (mm) ← 실측!
-sens_hole_d    = 2.0;   // 파일럿 지름 (M2 셀프태핑이면 1.8~2.0) ← 실측!
-sens_board_len = 25.0;  // 보드 긴 변 ← 실측!
-sens_board_wid = 11.0;  // 보드 짧은 변 ← 실측!
+sens_hole_span = 20.0;
+sens_hole_d    = 1.8;
+sens_board_len = 24.5;
+sens_board_wid = 10.0;
 
 // ===== [실측 권장] 서보 혼 =====
-horn_dia          = 21.0;
-horn_screw_circle = 16.0;
-horn_screw_d      = 2.0;
+horn_dia          = 20.0;
+horn_screw_circle = 14.0;
+horn_screw_d      = 2.4;  // 마스트 관통용 (나사는 혼 구멍에 태핑됨)
 horn_screw_n      = 4;
 
 // ===== 마스트 형상 =====
@@ -48,7 +48,7 @@ module mast_body() {
   difference() {
     cylinder(d = base_dia, h = base_t);
     translate([0, 0, -0.01]) cylinder(d = horn_dia + 0.6, h = 2);
-    translate([0, 0, -1]) cylinder(d = 9, h = base_t + 2);
+    translate([0, 0, -1]) cylinder(d = 12, h = base_t + 2); // 허브 통과
     for (a = [0 : 360/horn_screw_n : 359])
       rotate([0, 0, a]) translate([horn_screw_circle/2, 0, -1])
         cylinder(d = horn_screw_d, h = base_t + 2);
