@@ -43,3 +43,7 @@ v2에서 28BYJ-48 스테퍼 + ULN2003A로 교체해 360° 스캔 예정.
 
 [docs/troubleshooting.md](docs/troubleshooting.md) — 증상 → 원인 → 해결 형식.
 같은 보드 조합으로 만드는 사람에게 제일 유용한 문서.
+
+## 빌드 사진
+
+[docs/images/](docs/images/) — 납땜 전 부품부터 채널 검증 시리얼 출력까지 단계별 기록.
