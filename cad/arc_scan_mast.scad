@@ -61,13 +61,14 @@ module mast_body() {
     z = base_t + level_step * (7 - i) - level_step/2 + 3;
     hull() {
       translate([0, standoff + plate_t, z]) rotate([tilts[i], 0, 0]) face_plate();
-      translate([-spine_w/2 + 2, -spine_d + 1, z - plate_h/2])
-        cube([spine_w - 4, spine_d - 2, plate_h]);
+      translate([-spine_w/2 + 2, -spine_d + 1, z - plate_h/2 - 9])
+        cube([spine_w - 4, spine_d - 2, plate_h + 9]);  // 아래로 연장: 웨지 밑면 경사를 세워 오버행 완화
     }
   }
 }
 
 // hull이 구멍을 메우므로 전체에서 구멍 재차감
+module full_mast() {
 difference() {
   mast_body();
   for (i = [0 : 6]) {
@@ -80,5 +81,33 @@ difference() {
     // 배선 통과 구멍 (기둥 좌우 관통)
     translate([0, -spine_d/2, z]) rotate([0, 90, 0])
       cylinder(d = 5, h = spine_w + 4, center = true);
+  }
+}
+}
+
+// ===== 분할 출력 =====
+// part: "full" | "bottom" | "top"  — 상/하 분할로 출력 높이를 절반으로
+part   = "bottom";
+z_cut  = 87;          // 분할 높이 (4단과 5단 사이 기둥 구간)
+plug_w = 10; plug_d = 6; plug_h = 10;  // 결합 플러그 (하단에 돌출)
+gap    = 0.3;         // 소켓 여유 (한쪽)
+
+module plug_shape(extra=0, hextra=0)
+  translate([-(plug_w+extra)/2, -spine_d/2 - (plug_d+extra)/2, 0])
+    cube([plug_w+extra, plug_d+extra, plug_h+hextra]);
+
+if (part == "full") full_mast();
+
+if (part == "bottom") {
+  intersection() { full_mast(); translate([-100,-100,-1]) cube([200,200,z_cut+1]); }
+  translate([0,0,z_cut]) plug_shape();          // 위로 솟은 플러그
+}
+
+if (part == "top") {
+  // 절단면이 베드에 닿게 z_cut만큼 내림, 바닥면에 소켓 파기
+  difference() {
+    translate([0,0,-z_cut])
+      intersection() { full_mast(); translate([-100,-100,z_cut]) cube([200,200,200]); }
+    translate([0,0,-0.01]) plug_shape(extra=2*gap, hextra=0.4);
   }
 }
